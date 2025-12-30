@@ -7,6 +7,7 @@ using ArchiSteamFarm.Steam;
 using ArchiSteamFarm.Plugins.Interfaces;
 using SteamKit2;
 using System.Text.Json;
+using System.Globalization;
 using ArchiSteamFarm.Helpers.Json;
 
 namespace FreePackages {
@@ -24,9 +25,9 @@ namespace FreePackages {
 		}
 
 		public async Task<string?> OnBotCommand(Bot bot, EAccess access, string message, string[] args, ulong steamID = 0) {
-			return await Commands.Response(bot, access, steamID, message, args).ConfigureAwait(false);
-		}
-
+	ArgumentNullException.ThrowIfNull(args);
+	return await Commands.Response(bot, access, steamID, message, args).ConfigureAwait(false);
+}
 		public async Task OnASFInit(IReadOnlyDictionary<string, JsonElement>? additionalConfigProperties = null) {
 			if (GlobalCache == null) {
 				GlobalCache = await GlobalCache.CreateOrLoad().ConfigureAwait(false);
@@ -37,9 +38,10 @@ namespace FreePackages {
 		}
 
 		public async Task OnBotInitModules(Bot bot, IReadOnlyDictionary<string, JsonElement>? additionalConfigProperties = null) {
-			if (additionalConfigProperties == null) {
-				return;
-			}
+	ArgumentNullException.ThrowIfNull(bot);
+	if (additionalConfigProperties == null) {
+		return;
+	}
 
 			bool isEnabled = false;
 			uint? packageLimit = null;
@@ -53,7 +55,7 @@ namespace FreePackages {
 						bot.ArchiLogger.LogGenericInfo("Enable Free Packages : " + isEnabled.ToString());
 						break;
 					}
-					
+
 					case "PauseFreePackagesWhilePlaying" when (configProperty.Value.ValueKind == JsonValueKind.True || configProperty.Value.ValueKind == JsonValueKind.False): {
 						pauseWhilePlaying = configProperty.Value.GetBoolean();
 						bot.ArchiLogger.LogGenericInfo("Pause Free Packages While Playing : " + pauseWhilePlaying.ToString());
@@ -62,11 +64,11 @@ namespace FreePackages {
 
 					case "FreePackagesPerHour" or "FreePackagesLimit" when configProperty.Value.ValueKind == JsonValueKind.Number: {
 						packageLimit = configProperty.Value.ToJsonObject<uint>();
-						bot.ArchiLogger.LogGenericInfo("Free Packages Limit : " + packageLimit.ToString());
-						break;
-					}
+			bot.ArchiLogger.LogGenericInfo("Free Packages Limit : " + packageLimit.Value.ToString(CultureInfo.InvariantCulture));
+			break;
+		}
 
-					case "FreePackagesFilter": {
+		case "FreePackagesFilter": {
 						FilterConfig? filter = configProperty.Value.ToJsonObject<FilterConfig>();
 						if (filter != null) {
 							// Handles filter config changes made in V1.5.4.10
@@ -84,7 +86,7 @@ namespace FreePackages {
 						}
 						break;
 					}
-					
+
 					case "FreePackagesFilters": {
 						List<FilterConfig>? filters = configProperty.Value.ToJsonObject<List<FilterConfig>>();
 						if (filters != null) {
@@ -107,7 +109,7 @@ namespace FreePackages {
 					}
 				}
 			}
-			
+
 			if (isEnabled) {
 				await PackageHandler.AddHandler(bot, filterConfigs, packageLimit, pauseWhilePlaying).ConfigureAwait(false);
 			}
@@ -119,7 +121,7 @@ namespace FreePackages {
 
 		public Task OnPICSChanges(uint currentChangeNumber, IReadOnlyDictionary<uint, SteamApps.PICSChangesCallback.PICSChangeData> appChanges, IReadOnlyDictionary<uint, SteamApps.PICSChangesCallback.PICSChangeData> packageChanges) {
 			PICSHandler.OnPICSChanges(currentChangeNumber, appChanges, packageChanges);
-			
+
 			return Task.CompletedTask;
 		}
 
@@ -128,22 +130,25 @@ namespace FreePackages {
 		}
 
 		public Task OnBotSteamCallbacksInit(Bot bot, CallbackManager callbackManager) {
-			callbackManager.Subscribe<SteamApps.LicenseListCallback>(callback => OnLicenseList(bot, callback));
+	ArgumentNullException.ThrowIfNull(callbackManager);
+	callbackManager.Subscribe<SteamApps.LicenseListCallback>(callback => OnLicenseList(bot, callback));
 
-			return Task.CompletedTask;
-		}
+		return Task.CompletedTask;
+	}
 
 		public Task<IReadOnlyCollection<ClientMsgHandler>?> OnBotSteamHandlersInit(Bot bot) {
-			return Task.FromResult<IReadOnlyCollection<ClientMsgHandler>?>(new List<ClientMsgHandler> { SteamHandler.AddHandler(bot) });
-		}
+	ArgumentNullException.ThrowIfNull(bot);
+	return Task.FromResult<IReadOnlyCollection<ClientMsgHandler>?>(new List<ClientMsgHandler> { SteamHandler.AddHandler(bot) });
+}
 
-		private static void OnLicenseList (Bot bot, SteamApps.LicenseListCallback callback) {
+		private static void OnLicenseList(Bot bot, SteamApps.LicenseListCallback callback) {
 			PackageHandler.OnLicenseList(bot, callback);
 		}
 
 		public async Task OnBotLoggedOn(Bot bot) {
-			await PackageHandler.OnBotLoggedOn(bot).ConfigureAwait(false);
-		}
+	ArgumentNullException.ThrowIfNull(bot);
+	await PackageHandler.OnBotLoggedOn(bot).ConfigureAwait(false);
+}
 
 		public Task OnBotDisconnected(Bot bot, EResult reason) {
 			return Task.FromResult(0);
